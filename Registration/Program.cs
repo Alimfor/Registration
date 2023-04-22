@@ -1,8 +1,11 @@
+using Google;
 using Microsoft.EntityFrameworkCore;
 using Registration.Controllers;
 using Registration.Model;
 using System;
 using System.Configuration;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace Registration
 {
@@ -18,12 +21,8 @@ namespace Registration
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.AddScoped<IUserRepository, UserRepository>();
-            builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
-            builder.Services.AddDbContext<AppDbContext>(options =>
-             options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
-
-
+            string? connection = builder.Configuration.GetConnectionString("DefaultConnection");
+            builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connection));
             builder.Services.AddScoped<IUserRepository, UserRepository>();
 
             var app = builder.Build();

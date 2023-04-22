@@ -1,12 +1,15 @@
-﻿using Registration.Model;
+﻿using Microsoft.EntityFrameworkCore;
+using Registration.Model;
+using System.Data;
 
 namespace Registration.Controllers
 {
     public interface IUserRepository
     {
-        public void AddUser(User user);
-        public void UpdateUser(User user);
-        public User GetUserByUsername(string username);
+        public Task CreateUserAsync(User user);
+        public Task DeleteUserAsync(User user);
+        public Task UpdateUserAsync(User user);
+        public Task<User> GetUserByUsernameAsync(string username);
     }
 
     public class UserRepository : IUserRepository
@@ -18,21 +21,64 @@ namespace Registration.Controllers
             _dbContext = dbContext;
         }
 
-        public void AddUser(User user)
+        public async Task CreateUserAsync(User user)
         {
-            _dbContext.Users.Add(user);
-            _dbContext.SaveChanges();
+            if(await GetUserByUsernameAsync(user.Username) != null)
+            {
+                throw new DuplicateNameException("User with the same username already exists");
+            }
+            try
+            {
+                _dbContext.Users.Add(user);
+                _dbContext.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception("Failed to add user", ex);
+            }
         }
-
-        public void UpdateUser(User user)
+        public async Task DeleteUserAsync(User user)
         {
-            _dbContext.Users.Update(user);
-            _dbContext.SaveChanges();
+            var existingUser = await GetUserByUsernameAsync(user.Username);
+
+            try
+            {
+                _dbContext.Remove(existingUser);
+                _dbContext.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception("Failed to delete user", ex);
+            }
         }
-
-        public User GetUserByUsername(string username)
+        public async Task UpdateUserAsync(User user)
         {
-            return _dbContext.Users.FirstOrDefault(u => u.Username == username);
+            var existingUser = await GetUserByUsernameAsync(user.Username) ??
+                throw new Exception("User not found");
+
+            try
+            {
+                existingUser.Username = user.Username;
+                existingUser.Password = user.Password;
+                existingUser.Email = user.Email;
+                _dbContext.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception("Failed to update user", ex);
+            }
+        }
+        public async Task<User> GetUserByUsernameAsync(string username)
+        {
+            try
+            {
+                var users = await _dbContext.Users.Where(u => u.Username.Equals(username)).ToListAsync();
+                return users.FirstOrDefault(u => u.Username == username);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new Exception($"Error getting user by username '{username}'", ex);
+            }
         }
     }
 
