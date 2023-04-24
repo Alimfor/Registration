@@ -25,10 +25,6 @@ namespace Registration.Model
         [JsonIgnore]
         public new bool IsLockedOut { get; set; }
     }
-
-    class UserViewModel : User
-    {
-    }
     public class AppDbContext : DbContext
     {
         public DbSet<User> Users { get; set; }
